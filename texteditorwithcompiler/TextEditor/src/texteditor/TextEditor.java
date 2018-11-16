@@ -20,6 +20,8 @@ import java.io.IOException;
 import javax.swing.event.DocumentEvent;
 import java.io.InputStreamReader;
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -30,12 +32,14 @@ public class TextEditor extends JFrame {
     private String fileName;
     private String filePath;
     private String teText = "";
+    private static ArrayList<String> errorLine = new ArrayList<String>();
         
     public TextEditor(LinkedHashMap<String, ArrayList<String>> menuOptions, Font f) {
         super("New Doc");
 
         JTextArea t = new JTextArea();
         t.addKeyListener(new TextAreaListener(this, t));
+        t.addKeyListener(new ErrorKeyListener(this, t));
 
         Container c = getContentPane();
 
@@ -327,6 +331,42 @@ public class TextEditor extends JFrame {
         }
     }
     
+    class ErrorKeyListener implements KeyListener {
+        public TextEditor te;
+        public JTextArea ta;
+        
+        public ErrorKeyListener(TextEditor te, JTextArea ta) {
+            this.te = te;
+            this.ta = ta;
+        }
+        @Override
+        public void keyTyped(KeyEvent e) {
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {
+            int keyCode = e.getKeyCode();
+            switch(keyCode) { 
+                case KeyEvent.VK_F4:
+                    if (!errorLine.isEmpty()) {
+                        for (String i : errorLine) {
+                            ta.setCaretPosition(
+                            ta.getDocument().getDefaultRootElement().getElement(Integer.parseInt(i)-1).getStartOffset());
+                            ta.requestFocusInWindow();
+                            errorLine.remove(i);
+                        }
+                    }
+                    if (errorLine.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "No errors to navigate to!", "No Errors", JOptionPane.INFORMATION_MESSAGE);
+                    }
+             }
+        }
+    }
+    
     class CompileFileListener implements ActionListener{
         public void actionPerformed(ActionEvent e) {
             try {
@@ -334,11 +374,11 @@ public class TextEditor extends JFrame {
                 if (status == 0) {
                     JOptionPane.showMessageDialog(null, "Successfully Compiled!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 } else {
-                    JOptionPane.showMessageDialog(null, "Failed to compile", "Failure", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "Failed to compile. Press F4 to go to error", "Failure", JOptionPane.INFORMATION_MESSAGE);
                 }
             }
             catch (Exception exc) {
-                System.out.println(exc);
+                exc.printStackTrace();
             }
         }
     }
@@ -368,7 +408,12 @@ public class TextEditor extends JFrame {
         BufferedReader isr = new BufferedReader(new InputStreamReader(p.getErrorStream()));
         String line;
         while ((line = isr.readLine()) != null) {
-            System.out.println(line);
+            Pattern patt = Pattern.compile("(?<=java:)(\\d+)");
+            Matcher mat = patt.matcher(line);
+            if (mat.find()) {
+                String lineNo = mat.group(1);
+                 errorLine.add(lineNo);
+            }
         }
         return status;   
     }
