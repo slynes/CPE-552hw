@@ -11,3 +11,9 @@ for each word, if the word is in the list of common words, count all occurrences
 words immediately  before or after
 
 print each word combination that occurs more than 50 times.
+
+--Shane:
+
+To Run program:
+
+cd into *src* folder and run command java parsefile.ParseFile Books
